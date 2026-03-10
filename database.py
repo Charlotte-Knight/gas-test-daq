@@ -1,69 +1,42 @@
-import sqlite3
-import threading
-import time
+from sqlmodel import Session, SQLModel, create_engine, select
 
-DB_NAME = "daq.db"
-lock = threading.Lock()
+from models import Config, Mode
 
-def init_db():
-    with sqlite3.connect(DB_NAME) as conn:
-        c = conn.cursor()
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS runs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            description TEXT,
-            start_time REAL,
-            end_time REAL
-        )
-        """)
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS measurements (
-            timestamp REAL,
-            run_id INTEGER,
-            p1 REAL,
-            p2 REAL,
-            p3 REAL,
-            pump_state INTEGER
-        )
-        """)
-        conn.commit()
+DATABASE_URL = "sqlite:///daq.db"
 
-def insert_measurement(data):
-    with lock:
-        with sqlite3.connect(DB_NAME) as conn:
-            conn.execute("""
-                INSERT INTO measurements VALUES (?, ?, ?, ?, ?, ?)
-            """, data)
-            conn.commit()
+# check_same_thread=False is required for SQLite when accessed from
+# multiple threads (DAQ thread + FastAPI request handlers).
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    echo=False,
+)
 
-def create_run(name, description):
-    with sqlite3.connect(DB_NAME) as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO runs (name, description, start_time)
-            VALUES (?, ?, ?)
-        """, (name, description, time.time()))
-        conn.commit()
-        return cur.lastrowid
 
-def end_run(run_id):
-    with sqlite3.connect(DB_NAME) as conn:
-        conn.execute("""
-            UPDATE runs SET end_time = ?
-            WHERE id = ?
-        """, (time.time(), run_id))
-        conn.commit()
+def init_db() -> None:
+    """Create all tables and seed default config values."""
+    SQLModel.metadata.create_all(engine)
+    with Session(engine) as session:
+        # Only insert default mode if the config table is empty
+        existing = session.exec(select(Config).where(Config.key == "mode")).first()
+        if not existing:
+            session.add(Config(key="mode", value=Mode.AUTO.value))
+            session.commit()
 
-def get_runs():
-    with sqlite3.connect(DB_NAME) as conn:
-        return conn.execute("SELECT * FROM runs").fetchall()
 
-def get_measurements(run_id):
-    with sqlite3.connect(DB_NAME) as conn:
-        return conn.execute("""
-            SELECT timestamp, p1, p2, p3
-            FROM measurements
-            WHERE run_id = ?
-            ORDER BY timestamp
-        """, (run_id,)).fetchall()
+def get_session() -> Session:
+    """Yield a SQLModel session for use as a FastAPI dependency."""
+    with Session(engine) as session:
+        yield session
+
+
+def get_mode(session: Session) -> Mode:
+    config = session.exec(select(Config).where(Config.key == "mode")).one()
+    return Mode(config.value)
+
+
+def set_mode(session: Session, mode: Mode) -> None:
+    config = session.exec(select(Config).where(Config.key == "mode")).one()
+    config.value = mode.value
+    session.add(config)
+    session.commit()

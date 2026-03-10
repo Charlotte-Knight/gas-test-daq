@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DAQ Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 24px; color: #f8fafc; }
+    h2 { font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+         letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 12px; }
+
+    .grid { display: grid; gap: 16px; }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+
+    @media (max-width: 640px) {
+      .grid-3, .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    /* ── Mode buttons ───────────────────────────────────────────── */
+    .mode-group { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .mode-btn {
+      flex: 1;
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: 2px solid #334155;
+      border-radius: 8px;
+      background: #0f172a;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      min-width: 90px;
+    }
+    .mode-btn:hover { border-color: #64748b; color: #e2e8f0; }
+
+    .mode-btn.active-AUTO   { background: #1d4ed8; border-color: #3b82f6; color: #fff; }
+    .mode-btn.active-MANUAL { background: #b45309; border-color: #f59e0b; color: #fff; }
+    .mode-btn.active-SAFE   { background: #15803d; border-color: #22c55e; color: #fff; }
+
+    /* ── Channel cards ──────────────────────────────────────────── */
+    .ch-label { font-size: 0.8rem; color: #64748b; margin-bottom: 4px; }
+    .ch-value { font-size: 2.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .ch-unit  { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
+
+    .ch1 .ch-value { color: #60a5fa; }
+    .ch2 .ch-value { color: #34d399; }
+    .ch3 .ch-value { color: #f472b6; }
+
+    /* ── Output indicators ──────────────────────────────────────── */
+    .output-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #1e293b;
+    }
+    .output-row:last-child { border-bottom: none; }
+
+    .led {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    .led.on  { background: #22c55e; box-shadow: 0 0 8px #22c55e88; }
+    .led.off { background: #334155; }
+
+    .output-label { font-size: 0.9rem; }
+    .output-state {
+      margin-left: auto;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+    }
+    .output-state.on { color: #22c55e; }
+
+    /* ── Chart ──────────────────────────────────────────────────── */
+    .chart-card { grid-column: 1 / -1; }
+    .chart-wrap { position: relative; height: 220px; }
+
+    /* ── Footer ─────────────────────────────────────────────────── */
+    .footer {
+      margin-top: 16px;
+      font-size: 0.75rem;
+      color: #475569;
+      display: flex;
+      gap: 16px;
+    }
+    .status-dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      margin-right: 5px;
+      background: #334155;
+    }
+    .status-dot.live { background: #22c55e; animation: pulse 2s infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>⚡ DAQ Dashboard</h1>
+
+<div class="grid" style="margin-bottom:16px;">
+  <!-- Mode selector -->
+  <div class="card">
+    <h2>Operating Mode</h2>
+    <div class="mode-group">
+      <button class="mode-btn" id="btn-AUTO"   onclick="setMode('AUTO')">AUTO</button>
+      <button class="mode-btn" id="btn-MANUAL" onclick="setMode('MANUAL')">MANUAL</button>
+      <button class="mode-btn" id="btn-SAFE"   onclick="setMode('SAFE')">SAFE</button>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-3" style="margin-bottom:16px;">
+  <div class="card ch1">
+    <div class="ch-label">Channel 1</div>
+    <div class="ch-value" id="ch1">—</div>
+    <div class="ch-unit">V</div>
+  </div>
+  <div class="card ch2">
+    <div class="ch-label">Channel 2</div>
+    <div class="ch-value" id="ch2">—</div>
+    <div class="ch-unit">V</div>
+  </div>
+  <div class="card ch3">
+    <div class="ch-label">Channel 3</div>
+    <div class="ch-value" id="ch3">—</div>
+    <div class="ch-unit">V</div>
+  </div>
+</div>
+
+<div class="grid grid-2" style="margin-bottom:16px;">
+  <!-- Outputs -->
+  <div class="card">
+    <h2>Digital Outputs</h2>
+    <div class="output-row">
+      <span class="led" id="led1"></span>
+      <span class="output-label">Output 1</span>
+      <span class="output-state" id="state1">—</span>
+    </div>
+    <div class="output-row">
+      <span class="led" id="led2"></span>
+      <span class="output-label">Output 2</span>
+      <span class="output-state" id="state2">—</span>
+    </div>
+  </div>
+
+  <!-- Live chart -->
+  <div class="card chart-card">
+    <h2>Live Readings</h2>
+    <div class="chart-wrap">
+      <canvas id="chart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span><span class="status-dot" id="status-dot"></span><span id="status-text">Connecting…</span></span>
+  <span>Last update: <span id="ts">—</span></span>
+</div>
+
+<script>
+  // ── Chart setup ─────────────────────────────────────────────────────────
+  const MAX_POINTS = 60;
+  const labels = [];
+  const datasets = [
+    { label: "Ch1", data: [], borderColor: "#60a5fa", tension: 0.3, pointRadius: 0, borderWidth: 2 },
+    { label: "Ch2", data: [], borderColor: "#34d399", tension: 0.3, pointRadius: 0, borderWidth: 2 },
+    { label: "Ch3", data: [], borderColor: "#f472b6", tension: 0.3, pointRadius: 0, borderWidth: 2 },
+  ];
+
+  const chart = new Chart(document.getElementById("chart"), {
+    type: "line",
+    data: { labels, datasets },
+    options: {
+      animation: false,
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: "#94a3b8", boxWidth: 12 } } },
+      scales: {
+        x: { ticks: { color: "#64748b", maxTicksLimit: 6 }, grid: { color: "#1e293b" } },
+        y: {
+          ticks: { color: "#64748b" },
+          grid: { color: "#334155" },
+          min: 0, max: 3.5,
+          title: { display: true, text: "Volts", color: "#64748b" }
+        },
+      },
+    },
+  });
+
+  function pushToChart(ts, ch1, ch2, ch3) {
+    const label = new Date(ts).toLocaleTimeString();
+    labels.push(label);
+    datasets[0].data.push(ch1);
+    datasets[1].data.push(ch2);
+    datasets[2].data.push(ch3);
+    if (labels.length > MAX_POINTS) {
+      labels.shift();
+      datasets.forEach(d => d.data.shift());
+    }
+    chart.update("none");
+  }
+
+  // ── Mode buttons ─────────────────────────────────────────────────────────
+  async function setMode(mode) {
+    await fetch(`/mode/${mode}`, { method: "POST" });
+    highlightMode(mode);
+  }
+
+  function highlightMode(mode) {
+    ["AUTO", "MANUAL", "SAFE"].forEach(m => {
+      const btn = document.getElementById(`btn-${m}`);
+      btn.className = "mode-btn" + (m === mode ? ` active-${m}` : "");
+    });
+  }
+
+  // ── Output helpers ────────────────────────────────────────────────────────
+  function setOutput(index, on) {
+    const led   = document.getElementById(`led${index}`);
+    const state = document.getElementById(`state${index}`);
+    led.className   = `led ${on ? "on" : "off"}`;
+    state.textContent = on ? "ON" : "OFF";
+    state.className = `output-state ${on ? "on" : ""}`;
+  }
+
+  // ── SSE stream ────────────────────────────────────────────────────────────
+  function connect() {
+    const es = new EventSource("/stream");
+
+    es.onopen = () => {
+      document.getElementById("status-dot").classList.add("live");
+      document.getElementById("status-text").textContent = "Live";
+    };
+
+    es.onmessage = (e) => {
+      const d = JSON.parse(e.data);
+      document.getElementById("ch1").textContent = d.ch1?.toFixed(3) ?? "—";
+      document.getElementById("ch2").textContent = d.ch2?.toFixed(3) ?? "—";
+      document.getElementById("ch3").textContent = d.ch3?.toFixed(3) ?? "—";
+      document.getElementById("ts").textContent  = new Date(d.timestamp).toLocaleTimeString();
+      setOutput(1, d.out1);
+      setOutput(2, d.out2);
+      highlightMode(d.mode);
+      pushToChart(d.timestamp, d.ch1, d.ch2, d.ch3);
+    };
+
+    es.onerror = () => {
+      document.getElementById("status-dot").classList.remove("live");
+      document.getElementById("status-text").textContent = "Reconnecting…";
+      es.close();
+      setTimeout(connect, 3000);
+    };
+  }
+
+  // Seed current mode from API, then open the stream
+  fetch("/mode")
+    .then(r => r.json())
+    .then(d => highlightMode(d.mode))
+    .finally(connect);
+</script>
+</body>
+</html>
