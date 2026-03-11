@@ -38,12 +38,15 @@ import logging
 import math
 import random
 import threading
+
 import time
 
 from sqlmodel import Session
 
 from database import engine, get_mode
 from models import Measurement, Mode
+
+import revpimodio2
 
 logger = logging.getLogger(__name__)
 
@@ -52,14 +55,14 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 _sim_t = 0.0  # internal time counter for the simulator
 
+rpi = revpimodio2.RevPiModIO(autorefresh=True)
 
 def read_adc() -> tuple[float, float, float]:
     """Return (ch1, ch2, ch3) voltages. Currently simulated."""
-    global _sim_t
-    _sim_t += 0.05
-    ch1 = 2.5 + 1.5 * math.sin(_sim_t) + random.gauss(0, 0.02)
-    ch2 = 1.8 + 0.8 * math.cos(_sim_t * 0.7) + random.gauss(0, 0.02)
-    ch3 = abs(math.sin(_sim_t * 0.3)) * 3.3 + random.gauss(0, 0.02)
+    with adc_lock:
+      ch1 = rpi.io.AnalogInput_1.value / 1000
+      ch2 = rpi.io.AnalogInput_2.value / 1000
+      ch3 = rpi.io.AnalogInput_3.value / 1000
     return ch1, ch2, ch3
 
 

@@ -133,5 +133,5 @@ async def stream(session: DbSession) -> StreamingResponse:
 
 @app.get("/", response_class=HTMLResponse, summary="Live dashboard")
 def dashboard() -> str:
-    with open("index.html") as f:
+    with open("templates/index.html") as f:
         return f.read()
