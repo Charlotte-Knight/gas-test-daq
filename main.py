@@ -9,8 +9,10 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from sqlmodel import Session, select
 
 from database import get_mode, get_session, init_db, set_mode
-from daq import DAQThread
+from daq import SamplerThread, DatabaseThread, buffers
 from models import Measurement, Mode
+
+import numpy as np
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,21 +24,27 @@ logger = logging.getLogger(__name__)
 # Application lifespan — starts/stops the DAQ thread alongside FastAPI
 # ---------------------------------------------------------------------------
 
-_daq_thread: DAQThread | None = None
+_sampler_thread: SamplerThread | None = None
+_database_thread: DatabaseThread | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _daq_thread
+    global _sampler_thread, _database_thread
     init_db()
-    _daq_thread = DAQThread(interval=1.0)
-    _daq_thread.start()
-    logger.info("DAQ thread launched")
+    _sampler_thread = SamplerThread(interval=0.1)
+    _database_thread = DatabaseThread(interval=1.0)
+    _sampler_thread.start()
+    _database_thread.start()
+    logger.info("DAQ threads launched")
     yield
-    if _daq_thread:
-        _daq_thread.stop()
-        _daq_thread.join(timeout=5)
-    logger.info("DAQ thread shut down")
+    if _sampler_thread:
+        _sampler_thread.stop()
+        _sampler_thread.join(timeout=5)
+    if _database_thread:
+        _database_thread.stop()
+        _database_thread.join(timeout=5)
+    logger.info("DAQ threads shut down")
 
 
 app = FastAPI(title="DAQ & Control", lifespan=lifespan)
@@ -135,3 +143,33 @@ async def stream(session: DbSession) -> StreamingResponse:
 def dashboard() -> str:
     with open("templates/index.html") as f:
         return f.read()
+    
+@app.get("/buffer")
+def get_buffer() -> dict[str, list[float]]:
+    return {
+        "ch1": list(buffers[0]),
+        "ch2": list(buffers[1]),
+        "ch3": list(buffers[2])
+        }
+    
+@app.get("/buffer/stats")
+def get_buffer_stats() -> dict:
+    result = {}
+    for i, (ch, buf) in enumerate(zip(["ch1", "ch2", "ch3"], buffers)):
+        samples = list(buf)
+        if len(samples) < 2:
+            result[ch] = None
+            continue
+        
+        edges = np.arange(min(samples), max(samples), 0.001)
+        
+        counts, bin_edges = np.histogram(samples, bins=edges)
+        result[ch] = {
+            "mean":   round(np.mean(samples), 5),
+            "std":    round(np.std(samples), 5),
+            "min":    round(min(samples), 5),
+            "max":    round(max(samples), 5),
+            "counts": counts.tolist(),
+            "edges":  bin_edges.tolist(),
+        }
+    return result

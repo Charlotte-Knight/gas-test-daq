@@ -38,6 +38,7 @@ import logging
 import math
 import random
 import threading
+lock = threading.Lock()
 
 import time
 
@@ -47,6 +48,11 @@ from database import engine, get_mode
 from models import Measurement, Mode
 
 import revpimodio2
+
+from collections import deque
+
+buffers = [deque(maxlen=100) for _ in range(3)]
+latest_values = [None for _ in range(3)]
 
 logger = logging.getLogger(__name__)
 
@@ -59,10 +65,9 @@ rpi = revpimodio2.RevPiModIO(autorefresh=True)
 
 def read_adc() -> tuple[float, float, float]:
     """Return (ch1, ch2, ch3) voltages. Currently simulated."""
-    with adc_lock:
-      ch1 = rpi.io.AnalogInput_1.value / 1000
-      ch2 = rpi.io.AnalogInput_2.value / 1000
-      ch3 = rpi.io.AnalogInput_3.value / 1000
+    ch1 = rpi.io.AnalogInput_1.value / 1000
+    ch2 = rpi.io.AnalogInput_2.value / 1000
+    ch3 = rpi.io.AnalogInput_3.value / 1000
     return ch1, ch2, ch3
 
 
@@ -110,16 +115,9 @@ def compute_outputs(mode: Mode, ch1: float, ch2: float, ch3: float) -> tuple[boo
 # ---------------------------------------------------------------------------
 
 class DAQThread(threading.Thread):
-    """
-    Background thread that samples the ADC, resolves outputs for the current
-    mode, drives GPIO, and persists each measurement to SQLite.
-
-    The thread runs as a daemon so it exits automatically when the main
-    process shuts down. Call `stop()` for a clean shutdown.
-    """
-
-    def __init__(self, interval: float = 1.0) -> None:
-        super().__init__(name="daq-thread", daemon=True)
+    def __init__(self, name: str, interval: float = 1.0) -> None:
+        super().__init__(name=name,  daemon=True)
+        self.name = name
         self.interval = interval
         self._stop_event = threading.Event()
 
@@ -128,25 +126,39 @@ class DAQThread(threading.Thread):
         self._stop_event.set()
 
     def run(self) -> None:
-        logger.info("DAQ thread started (interval=%.1fs)", self.interval)
+        logger.info("%s thread started (interval=%.1fs)", self.name, self.interval)
         while not self._stop_event.is_set():
             start = time.monotonic()
             try:
                 self._tick()
             except Exception:
-                logger.exception("Error in DAQ tick — continuing")
+                logger.exception("Error in tick — continuing")
 
             # Sleep for the remainder of the interval to keep a steady rate
             elapsed = time.monotonic() - start
             sleep_for = max(0.0, self.interval - elapsed)
             self._stop_event.wait(timeout=sleep_for)
 
-        logger.info("DAQ thread stopped")
+        logger.info("%s thread stopped", self.name)
 
     def _tick(self) -> None:
-        ch1, ch2, ch3 = read_adc()
+        pass
+    
 
+class DatabaseThread(DAQThread):
+    def __init__(self, interval: float = 1.0) -> None:
+        super().__init__(name="SamplerThread", interval=interval)
+    
+    def _tick(self) -> None:
         with Session(engine) as session:
+            with lock:
+                ch1, ch2, ch3 = latest_values
+            
+            if ch1 is None or ch2 is None or ch3 is None:
+                # No valid readings yet — skip this tick
+                logger.debug("No valid ADC readings yet, skipping tick")
+                return
+            
             mode = get_mode(session)
             out1, out2 = compute_outputs(mode, ch1, ch2, ch3)
 
@@ -166,3 +178,16 @@ class DAQThread(threading.Thread):
                 "Saved: ch1=%.3f ch2=%.3f ch3=%.3f out1=%s out2=%s mode=%s",
                 ch1, ch2, ch3, out1, out2, mode.value,
             )
+
+class SamplerThread(DAQThread):
+    def __init__(self, interval: float = 1.0) -> None:
+        super().__init__(name="DatabaseThread", interval=interval)
+    
+    def _tick(self) -> None:
+        global latest_values
+        ch1, ch2, ch3 = read_adc()
+        with lock:
+            latest_values = (ch1, ch2, ch3)
+            buffers[0].append(ch1)
+            buffers[1].append(ch2)
+            buffers[2].append(ch3)
