@@ -17,6 +17,7 @@ class Measurement(SQLModel, table=True):
     ch1: float
     ch2: float
     ch3: float
+    pressure: float
     out1: bool
     out2: bool
     mode: Mode

@@ -155,6 +155,14 @@
   </div>
 </div>
 
+<div class="grid grid-3" style="margin-bottom:16px;">
+  <div class="card ch1">
+    <div class="ch-label">Pressure Reading (Preliminary/WIP)</div>
+    <div class="ch-value" id="pressure">—</div>
+    <div class="ch-unit">bar</div>
+  </div>
+</div>
+
 <div class="grid grid-2" style="margin-bottom:16px;">
   <!-- Outputs -->
   <div class="card">
@@ -312,6 +320,7 @@
       document.getElementById("ch1").textContent = d.ch1?.toFixed(3) ?? "—";
       document.getElementById("ch2").textContent = d.ch2?.toFixed(3) ?? "—";
       document.getElementById("ch3").textContent = d.ch3?.toFixed(3) ?? "—";
+      document.getElementById("pressure").textContent = d.pressure?.toFixed(3) ?? "—";
       document.getElementById("ts").textContent  = new Date(d.timestamp).toLocaleTimeString();
       setOutput(1, d.out1);
       setOutput(2, d.out2);

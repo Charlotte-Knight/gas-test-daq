@@ -77,6 +77,13 @@ def set_outputs(out1: bool, out2: bool) -> None:
     # GPIO.output(OUT2_PIN, out2)
     pass
 
+def get_pressure_from_voltage(voltage: float) -> float:
+    """
+    Convert voltage reading (in V) from RS 309-725 pressure sensor to pressure in bar.
+    
+    In testing we found that at atmospheric pressures, the sensor reads ~0V, and otherwise it has a linear response with a slope of about 16/10 bar/V. Some more testing and calibration should be done to confirm this.
+    """
+    return 1.0 + (16/10) * voltage # to be finalised
 
 # ---------------------------------------------------------------------------
 # Mode logic — add or modify modes here
@@ -168,6 +175,7 @@ class DatabaseThread(DAQThread):
                 ch1=round(ch1, 4),
                 ch2=round(ch2, 4),
                 ch3=round(ch3, 4),
+                pressure=get_pressure_from_voltage(ch1),
                 out1=out1,
                 out2=out2,
                 mode=mode,

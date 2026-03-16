@@ -117,6 +117,7 @@ async def stream(session: DbSession) -> StreamingResponse:
                     "ch1": row.ch1,
                     "ch2": row.ch2,
                     "ch3": row.ch3,
+                    "pressure": row.pressure,
                     "out1": row.out1,
                     "out2": row.out2,
                     "mode": row.mode.value,
