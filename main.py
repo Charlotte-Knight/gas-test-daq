@@ -8,9 +8,9 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, StreamingResponse
 from sqlmodel import Session, select
 
-from database import get_mode, get_session, init_db, set_mode
+from database import get_mode, get_session, init_db, set_mode, get_pump, set_pump
 from daq import SamplerThread, DatabaseThread, buffers
-from models import Measurement, Mode
+from models import Measurement, Mode, PumpState
 
 import numpy as np
 
@@ -67,6 +67,20 @@ def change_mode(new_mode: Mode, session: DbSession) -> dict:
     logger.info("Mode changed to %s", new_mode.value)
     return {"mode": new_mode.value}
 
+# ---------------------------------------------------------------------------
+# Pump endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/pump", summary="Get current pump state")
+def read_pump(session: DbSession) -> dict:
+    return {"pump": get_pump(session).value}
+
+
+@app.post("/pump/{new_state}", summary="Change pump state")
+def change_pump(new_state: PumpState, session: DbSession) -> dict:
+    set_pump(session, new_state)
+    logger.info("Pump state changed to %s", new_state.value)
+    return {"pump": new_state.value}
 
 # ---------------------------------------------------------------------------
 # Measurement endpoints
@@ -121,6 +135,7 @@ async def stream(session: DbSession) -> StreamingResponse:
                     "out1": row.out1,
                     "out2": row.out2,
                     "mode": row.mode.value,
+                    "pump": row.pump.value,
                 }
                 yield f"data: {json.dumps(payload)}\n\n"
 

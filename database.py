@@ -1,6 +1,6 @@
 from sqlmodel import Session, SQLModel, create_engine, select
 
-from models import Config, Mode
+from models import Config, Mode, PumpState
 
 DATABASE_URL = "sqlite:///daq.db"
 
@@ -22,6 +22,11 @@ def init_db() -> None:
         if not existing:
             session.add(Config(key="mode", value=Mode.AUTO.value))
             session.commit()
+            
+        existing = session.exec(select(Config).where(Config.key == "pump")).first()
+        if not existing:
+            session.add(Config(key="pump", value=PumpState.OFF.value))
+            session.commit()
 
 
 def get_session() -> Session:
@@ -38,5 +43,17 @@ def get_mode(session: Session) -> Mode:
 def set_mode(session: Session, mode: Mode) -> None:
     config = session.exec(select(Config).where(Config.key == "mode")).one()
     config.value = mode.value
+    session.add(config)
+    session.commit()
+
+
+def get_pump(session: Session) -> Mode:
+    config = session.exec(select(Config).where(Config.key == "pump")).one()
+    return Mode(config.value)
+
+
+def set_pump(session: Session, pump: Mode) -> None:
+    config = session.exec(select(Config).where(Config.key == "pump")).one()
+    config.value = pump.value
     session.add(config)
     session.commit()

@@ -57,6 +57,9 @@
     .mode-btn.active-MANUAL { background: #b45309; border-color: #f59e0b; color: #fff; }
     .mode-btn.active-SAFE   { background: #15803d; border-color: #22c55e; color: #fff; }
 
+    .mode-btn.active-ON   { background: #1d4ed8; border-color: #3b82f6; color: #fff; }
+    .mode-btn.active-OFF   { background: #1d4ed8; border-color: #3b82f6; color: #fff; }
+
     /* ── Channel cards ──────────────────────────────────────────── */
     .ch-label { font-size: 0.8rem; color: #64748b; margin-bottom: 4px; }
     .ch-value { font-size: 2.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -133,6 +136,17 @@
       <button class="mode-btn" id="btn-AUTO"   onclick="setMode('AUTO')">AUTO</button>
       <button class="mode-btn" id="btn-MANUAL" onclick="setMode('MANUAL')">MANUAL</button>
       <button class="mode-btn" id="btn-SAFE"   onclick="setMode('SAFE')">SAFE</button>
+    </div>
+  </div>
+</div>
+
+<div class="grid" style="margin-bottom:16px;">
+  <!-- Mode selector -->
+  <div class="card">
+    <h2>Pump</h2>
+    <div class="mode-group">
+      <button class="mode-btn" id="btn-ON"   onclick="setPump('ON')">ON</button>
+      <button class="mode-btn" id="btn-OFF" onclick="setPump('OFF')">OFF</button>
     </div>
   </div>
 </div>
@@ -294,6 +308,19 @@
     ["AUTO", "MANUAL", "SAFE"].forEach(m => {
       const btn = document.getElementById(`btn-${m}`);
       btn.className = "mode-btn" + (m === mode ? ` active-${m}` : "");
+    });
+  }
+
+  // ── Pump buttons ───────────────────────────────────────────────────────
+  async function setPump(state) {
+    await fetch(`/pump/${state}`, { method: "POST" });
+    highlightPump(state);
+  }
+
+  function highlightPump(state) {
+    ["ON", "OFF"].forEach(s => {
+      const btn = document.getElementById(`btn-${s}`);
+      btn.className = "mode-btn" + (s === state ? ` active-${s}` : "");
     });
   }
 

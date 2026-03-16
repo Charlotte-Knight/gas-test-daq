@@ -45,7 +45,7 @@ import time
 from sqlmodel import Session
 
 from database import engine, get_mode
-from models import Measurement, Mode
+from models import Measurement, Mode, PumpState
 
 import revpimodio2
 
@@ -179,6 +179,7 @@ class DatabaseThread(DAQThread):
                 out1=out1,
                 out2=out2,
                 mode=mode,
+                pump=PumpState.ON # Placeholder until pump state is implemented in the database and DAQ loop
             )
             session.add(measurement)
             session.commit()

@@ -3,3 +3,4 @@ uvicorn[standard]>=0.29.0
 sqlmodel>=0.0.19
 revpimodio2
 numpy
+pyserial

@@ -9,6 +9,11 @@ class Mode(str, Enum):
     AUTO = "AUTO"
     MANUAL = "MANUAL"
     SAFE = "SAFE"
+    
+
+class PumpState(str, Enum):
+    ON = "ON"
+    OFF = "OFF"
 
 
 class Measurement(SQLModel, table=True):
@@ -21,7 +26,7 @@ class Measurement(SQLModel, table=True):
     out1: bool
     out2: bool
     mode: Mode
-
+    pump: PumpState
     class Config:
         # Allows pandas-friendly CSV/parquet export via:
         #   pd.read_sql("SELECT * FROM measurement", engine)
