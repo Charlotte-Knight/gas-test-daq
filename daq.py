@@ -44,8 +44,10 @@ import time
 
 from sqlmodel import Session
 
-from database import engine, get_mode
+from database import engine, get_mode, get_pump
 from models import Measurement, Mode, PumpState
+from pump import NXDSPump
+from pirani import PiraniGauge
 
 import revpimodio2
 
@@ -62,6 +64,8 @@ logger = logging.getLogger(__name__)
 _sim_t = 0.0  # internal time counter for the simulator
 
 rpi = revpimodio2.RevPiModIO(autorefresh=True)
+pump = NXDSPump("/dev/ttyUSB1")
+pirani = PiraniGauge("/dev/ttyUSB0")
 
 def read_adc() -> tuple[float, float, float]:
     """Return (ch1, ch2, ch3) voltages. Currently simulated."""
@@ -167,19 +171,26 @@ class DatabaseThread(DAQThread):
                 return
             
             mode = get_mode(session)
+            pump_state = get_pump(session)
             out1, out2 = compute_outputs(mode, ch1, ch2, ch3)
+            pirani_pressure = pirani.read_pressure()
 
             set_outputs(out1, out2)
+            if pump_state == PumpState.ON:
+                pump.start()
+            else:
+                pump.stop()
 
             measurement = Measurement(
                 ch1=round(ch1, 4),
                 ch2=round(ch2, 4),
                 ch3=round(ch3, 4),
                 pressure=get_pressure_from_voltage(ch1),
+                pirani_pressure=pirani_pressure,
                 out1=out1,
                 out2=out2,
                 mode=mode,
-                pump=PumpState.ON # Placeholder until pump state is implemented in the database and DAQ loop
+                pump=pump_state # Placeholder until pump state is implemented in the database and DAQ loop
             )
             session.add(measurement)
             session.commit()

@@ -23,6 +23,7 @@ class Measurement(SQLModel, table=True):
     ch2: float
     ch3: float
     pressure: float
+    pirani_pressure: float
     out1: bool
     out2: bool
     mode: Mode

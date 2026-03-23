@@ -17,9 +17,11 @@ class NXDSPump:
         return self.ser.readline().decode("ascii").strip()
 
     def start(self):
+        #return "Pump started"
         return self.cmd("!C802 1")
 
     def stop(self):
+        #return "Pump stopped"
         return self.cmd("!C802 0")
 
     # def speed(self):
@@ -30,7 +32,7 @@ class NXDSPump:
 
 if __name__ == "__main__":
     pump = NXDSPump("/dev/ttyUSB1")
-    print("Starting pump:", pump.start())
-    time.sleep(5)
+    #print("Starting pump:", pump.start())
+    #time.sleep(5)
     print("Stopping pump:", pump.stop())
     pump.close()

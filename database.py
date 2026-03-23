@@ -47,12 +47,12 @@ def set_mode(session: Session, mode: Mode) -> None:
     session.commit()
 
 
-def get_pump(session: Session) -> Mode:
+def get_pump(session: Session) -> PumpState:
     config = session.exec(select(Config).where(Config.key == "pump")).one()
-    return Mode(config.value)
+    return PumpState(config.value)
 
 
-def set_pump(session: Session, pump: Mode) -> None:
+def set_pump(session: Session, pump: PumpState) -> None:
     config = session.exec(select(Config).where(Config.key == "pump")).one()
     config.value = pump.value
     session.add(config)

@@ -132,6 +132,7 @@ async def stream(session: DbSession) -> StreamingResponse:
                     "ch2": row.ch2,
                     "ch3": row.ch3,
                     "pressure": row.pressure,
+                    "pirani_pressure": row.pirani_pressure,
                     "out1": row.out1,
                     "out2": row.out2,
                     "mode": row.mode.value,
