@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>DAQ Dashboard</title>
+  <title>537 Gas Test Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -124,7 +124,7 @@
 </head>
 <body>
 
-<h1>⚡ DAQ Dashboard</h1>
+<h1>537 Gas Test Dashboard</h1>
 
 <div class="grid" style="margin-bottom:16px;">
   <!-- Mode selector -->
@@ -155,17 +155,13 @@
     <div class="ch-value" id="ch1">—</div>
     <div class="ch-unit">V</div>
   </div>
-</div>
 
-<div class="grid grid-3" style="margin-bottom:16px;">
   <div class="card ch1">
     <div class="ch-label">Pressure Reading (Preliminary/WIP)</div>
     <div class="ch-value" id="pressure">—</div>
     <div class="ch-unit">bar</div>
   </div>
-</div>
 
-<div class="grid grid-3" style="margin-bottom:16px;">
   <div class="card ch1">
     <div class="ch-label">Pirani Pressure Reading (Preliminary/WIP)</div>
     <div class="ch-value" id="pirani-pressure">—</div>
@@ -208,7 +204,8 @@
   const MAX_POINTS = 60;
   const labels = [];
   const datasets = [
-    { label: "Ch1", data: [], borderColor: "#60a5fa", tension: 0.3, pointRadius: 0, borderWidth: 2 },
+    { label: "Pressure", data: [], borderColor: "#60a5fa", tension: 0.3, pointRadius: 0, borderWidth: 2 },
+    { label: "Pirani Pressure", data: [], borderColor: "#34d399", tension: 0.3, pointRadius: 0, borderWidth: 2 },
   ];
 
   const chart = new Chart(document.getElementById("chart"), {
@@ -224,17 +221,18 @@
         y: {
           ticks: { color: "#64748b" },
           grid: { color: "#334155" },
-          min: 0, max: 3.5,
-          title: { display: true, text: "Volts", color: "#64748b" }
+          min: 0, max: 12,
+          title: { display: true, text: "Pressure (bar)", color: "#64748b" }
         },
       },
     },
   });
 
-  function pushToChart(ts, ch1) {
+  function pushToChart(ts, pressure, pirani_pressure) {
     const label = new Date(ts).toLocaleTimeString();
     labels.push(label);
-    datasets[0].data.push(ch1);
+    datasets[0].data.push(pressure);
+    datasets[1].data.push(pirani_pressure);
     if (labels.length > MAX_POINTS) {
       labels.shift();
       datasets.forEach(d => d.data.shift());
@@ -294,7 +292,7 @@
       document.getElementById("ts").textContent  = new Date(d.timestamp).toLocaleTimeString();
       highlightMode(d.mode);
       highlightPump(d.pump);
-      pushToChart(d.timestamp, d.ch1);
+      pushToChart(d.timestamp, d.pressure, d.pirani_pressure);
     };
 
     es.onerror = () => {
