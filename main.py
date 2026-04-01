@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from sqlmodel import Session, select
 
 from database import get_mode, get_session, init_db, set_mode, get_pump, set_pump
-from daq import SamplerThread, DatabaseThread, buffers
+from daq import SamplerThread, DatabaseThread, buffer
 from models import Measurement, Mode, PumpState
 
 import numpy as np
@@ -129,12 +129,8 @@ async def stream(session: DbSession) -> StreamingResponse:
                     "id": row.id,
                     "timestamp": row.timestamp.isoformat(),
                     "ch1": row.ch1,
-                    "ch2": row.ch2,
-                    "ch3": row.ch3,
                     "pressure": row.pressure,
                     "pirani_pressure": row.pirani_pressure,
-                    "out1": row.out1,
-                    "out2": row.out2,
                     "mode": row.mode.value,
                     "pump": row.pump.value,
                 }
@@ -164,15 +160,13 @@ def dashboard() -> str:
 @app.get("/buffer")
 def get_buffer() -> dict[str, list[float]]:
     return {
-        "ch1": list(buffers[0]),
-        "ch2": list(buffers[1]),
-        "ch3": list(buffers[2])
+        "ch1": list(buffer),
         }
     
 @app.get("/buffer/stats")
 def get_buffer_stats() -> dict:
     result = {}
-    for i, (ch, buf) in enumerate(zip(["ch1", "ch2", "ch3"], buffers)):
+    for i, (ch, buf) in enumerate(zip(["ch1"], [buffer])):
         samples = list(buf)
         if len(samples) < 2:
             result[ch] = None

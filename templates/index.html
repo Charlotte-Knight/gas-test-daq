@@ -66,8 +66,6 @@
     .ch-unit  { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
 
     .ch1 .ch-value { color: #60a5fa; }
-    .ch2 .ch-value { color: #34d399; }
-    .ch3 .ch-value { color: #f472b6; }
 
     /* ── Output indicators ──────────────────────────────────────── */
     .output-row {
@@ -157,16 +155,6 @@
     <div class="ch-value" id="ch1">—</div>
     <div class="ch-unit">V</div>
   </div>
-  <div class="card ch2">
-    <div class="ch-label">Channel 2</div>
-    <div class="ch-value" id="ch2">—</div>
-    <div class="ch-unit">V</div>
-  </div>
-  <div class="card ch3">
-    <div class="ch-label">Channel 3</div>
-    <div class="ch-value" id="ch3">—</div>
-    <div class="ch-unit">V</div>
-  </div>
 </div>
 
 <div class="grid grid-3" style="margin-bottom:16px;">
@@ -187,20 +175,6 @@
 
 <div class="grid grid-2" style="margin-bottom:16px;">
   <!-- Outputs -->
-  <div class="card">
-    <h2>Digital Outputs</h2>
-    <div class="output-row">
-      <span class="led" id="led1"></span>
-      <span class="output-label">Output 1</span>
-      <span class="output-state" id="state1">—</span>
-    </div>
-    <div class="output-row">
-      <span class="led" id="led2"></span>
-      <span class="output-label">Output 2</span>
-      <span class="output-state" id="state2">—</span>
-    </div>
-  </div>
-
   <!-- Live chart -->
   <div class="card chart-card">
     <h2>Live Readings</h2>
@@ -209,20 +183,6 @@
     </div>
   </div>
 </div>
-
-<!-- <div class="card" style="grid-column: 1 / -1; margin-top: 16px;">
-  <h2>Noise Distribution (last 100 samples)</h2>
-  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 12px;">
-    <div><canvas id="hist-ch1"></canvas></div>
-    <div><canvas id="hist-ch2"></canvas></div>
-    <div><canvas id="hist-ch3"></canvas></div>
-  </div>
-  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 10px; text-align: center; font-size: 0.75rem; color: #64748b;">
-    <div>Ch1 σ = <span id="std-ch1" style="color:#60a5fa">—</span> mV</div>
-    <div>Ch2 σ = <span id="std-ch2" style="color:#34d399">—</span> mV</div>
-    <div>Ch3 σ = <span id="std-ch3" style="color:#f472b6">—</span> mV</div>
-  </div>
-</div> -->
 
 <div class="grid grid-3" style="margin-top: 16px;">
 
@@ -233,26 +193,6 @@
     </div>
     <div style="text-align: center; margin-top: 8px; font-size: 0.75rem; color: #64748b;">
       σ = <span id="std-ch1" style="color:#60a5fa">—</span> mV
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>Ch2 Noise Distribution</h2>
-    <div style="position: relative; height: 180px;">
-      <canvas id="hist-ch2"></canvas>
-    </div>
-    <div style="text-align: center; margin-top: 8px; font-size: 0.75rem; color: #64748b;">
-      σ = <span id="std-ch2" style="color:#34d399">—</span> mV
-    </div>
-  </div>
-
-  <div class="card">
-    <h2>Ch3 Noise Distribution</h2>
-    <div style="position: relative; height: 180px;">
-      <canvas id="hist-ch3"></canvas>
-    </div>
-    <div style="text-align: center; margin-top: 8px; font-size: 0.75rem; color: #64748b;">
-      σ = <span id="std-ch3" style="color:#f472b6">—</span> mV
     </div>
   </div>
 
@@ -269,8 +209,6 @@
   const labels = [];
   const datasets = [
     { label: "Ch1", data: [], borderColor: "#60a5fa", tension: 0.3, pointRadius: 0, borderWidth: 2 },
-    { label: "Ch2", data: [], borderColor: "#34d399", tension: 0.3, pointRadius: 0, borderWidth: 2 },
-    { label: "Ch3", data: [], borderColor: "#f472b6", tension: 0.3, pointRadius: 0, borderWidth: 2 },
   ];
 
   const chart = new Chart(document.getElementById("chart"), {
@@ -293,12 +231,10 @@
     },
   });
 
-  function pushToChart(ts, ch1, ch2, ch3) {
+  function pushToChart(ts, ch1) {
     const label = new Date(ts).toLocaleTimeString();
     labels.push(label);
     datasets[0].data.push(ch1);
-    datasets[1].data.push(ch2);
-    datasets[2].data.push(ch3);
     if (labels.length > MAX_POINTS) {
       labels.shift();
       datasets.forEach(d => d.data.shift());
@@ -353,16 +289,12 @@
     es.onmessage = (e) => {
       const d = JSON.parse(e.data);
       document.getElementById("ch1").textContent = d.ch1?.toFixed(3) ?? "—";
-      document.getElementById("ch2").textContent = d.ch2?.toFixed(3) ?? "—";
-      document.getElementById("ch3").textContent = d.ch3?.toFixed(3) ?? "—";
       document.getElementById("pressure").textContent = d.pressure?.toFixed(3) ?? "—";
       document.getElementById("pirani-pressure").textContent = d.pirani_pressure?.toFixed(3) ?? "—";
       document.getElementById("ts").textContent  = new Date(d.timestamp).toLocaleTimeString();
-      setOutput(1, d.out1);
-      setOutput(2, d.out2);
       highlightMode(d.mode);
       highlightPump(d.pump);
-      pushToChart(d.timestamp, d.ch1, d.ch2, d.ch3);
+      pushToChart(d.timestamp, d.ch1);
     };
 
     es.onerror = () => {
@@ -389,24 +321,6 @@
         scales: { x: { ticks: { color: "#64748b", maxTicksLimit: 5 }, grid: { color: "#334155" } },
                   y: { ticks: { color: "#64748b" }, grid: { color: "#334155" } } } },
     }),
-    new Chart(document.getElementById("hist-ch2"), {
-      type: "bar",
-      data: { labels: [], datasets: [{ data: [], backgroundColor: "#34d39955",
-        borderColor: "#34d399", borderWidth: 1,
-        barPercentage: 1.0, categoryPercentage: 1.0 }] },
-      options: { animation: false, responsive: true, plugins: { legend: { display: false } },
-        scales: { x: { ticks: { color: "#64748b", maxTicksLimit: 5 }, grid: { color: "#334155" } },
-                  y: { ticks: { color: "#64748b" }, grid: { color: "#334155" } } } },
-    }),
-    new Chart(document.getElementById("hist-ch3"), {
-      type: "bar",
-      data: { labels: [], datasets: [{ data: [], backgroundColor: "#f472b655",
-        borderColor: "#f472b6", borderWidth: 1,
-        barPercentage: 1.0, categoryPercentage: 1.0 }] },
-      options: { animation: false, responsive: true, plugins: { legend: { display: false } },
-        scales: { x: { ticks: { color: "#64748b", maxTicksLimit: 5 }, grid: { color: "#334155" } },
-                  y: { ticks: { color: "#64748b" }, grid: { color: "#334155" } } } },
-    }),
   ];
 
 
@@ -414,7 +328,7 @@
       const res  = await fetch("/buffer/stats");
       const data = await res.json();
 
-      ["ch1", "ch2", "ch3"].forEach((ch, i) => {
+      ["ch1"].forEach((ch, i) => {
         const s = data[ch];
         if (!s) return;
 

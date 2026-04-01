@@ -20,12 +20,8 @@ class Measurement(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     timestamp: datetime = Field(default_factory=datetime.utcnow, index=True)
     ch1: float
-    ch2: float
-    ch3: float
     pressure: float
     pirani_pressure: float
-    out1: bool
-    out2: bool
     mode: Mode
     pump: PumpState
     class Config:
