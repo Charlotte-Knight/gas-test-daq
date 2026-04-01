@@ -46,10 +46,7 @@ from sqlmodel import Session
 
 from database import engine, get_mode, get_pump
 from models import Measurement, Mode, PumpState
-from pump import NXDSPump
-from pirani import PiraniGauge
-
-import revpimodio2
+from devices import PiraniGauge, PressureGauge, VacuumPump
 
 from collections import deque
 
@@ -63,24 +60,9 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 _sim_t = 0.0  # internal time counter for the simulator
 
-rpi = revpimodio2.RevPiModIO(autorefresh=True)
-pump = NXDSPump("/dev/ttyUSB1")
-pirani = PiraniGauge("/dev/ttyUSB0")
-
-def read_adc() -> float:
-    """Return ch1 voltage"""
-    ch1 = rpi.io.AnalogInput_1.value / 1000
-    return ch1
-
-
-def get_pressure_from_voltage(voltage: float) -> float:
-    """
-    Convert voltage reading (in V) from RS 309-725 pressure sensor to pressure in bar.
-    
-    In testing we found that at atmospheric pressures, the sensor reads ~0V, and otherwise it has a linear response with a slope of about 16/10 bar/V. Some more testing and calibration should be done to confirm this.
-    """
-    return 1.0 + (16/10) * voltage # to be finalised
-
+pressure_gauge = PressureGauge()
+pump = VacuumPump()
+pirani = PiraniGauge()
 
 # ---------------------------------------------------------------------------
 # DAQ loop
@@ -142,7 +124,7 @@ class DatabaseThread(DAQThread):
 
             measurement = Measurement(
                 ch1=round(ch1, 4),
-                pressure=get_pressure_from_voltage(ch1),
+                pressure=pressure_gauge.get_pressure_from_voltage(ch1),
                 pirani_pressure=pirani_pressure,
                 mode=mode,
                 pump=pump_state # Placeholder until pump state is implemented in the database and DAQ loop
@@ -160,7 +142,7 @@ class SamplerThread(DAQThread):
     
     def _tick(self) -> None:
         global latest_values
-        ch1 = read_adc()
+        ch1 = pressure_gauge.read_voltage()
         with lock:
             latest_values = ch1
             buffer.append(ch1)
