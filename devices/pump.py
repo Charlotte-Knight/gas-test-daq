@@ -1,13 +1,12 @@
-"""
-Interface for the vacuum pump.
-https://www.idealvac.com/files/manuals/Edwards_nXDS_ScrollPumpManual.pdf
-https://highvacdepot.com/wp-content/uploads/2018/03/Edwards-nXDS-Serial-Comms-Interface-Manual.pdf
-"""
-
 import serial
 import time
 
 class VacuumPump:
+    """
+    Interface for the vacuum pump.
+    https://www.idealvac.com/files/manuals/Edwards_nXDS_ScrollPumpManual.pdf
+    https://highvacdepot.com/wp-content/uploads/2018/03/Edwards-nXDS-Serial-Comms-Interface-Manual.pdf
+    """
     def __init__(self):
         self.ser = ser = serial.Serial(
             port="/dev/ttyUSB1",

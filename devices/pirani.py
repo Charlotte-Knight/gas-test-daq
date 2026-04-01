@@ -1,11 +1,10 @@
-"""
-Interface for the Pirani (low pressure) gauge.
-https://uk.my.edwardsvacuum.com/en/GBP/Catalog/Measurement%2C-Leak-Detection-and-Control/Gauge-Indirect-Pressure-Measurement/APG-Series-Pirani-Gauge/nAPG200-Series-%28digital%29/p/D1G2010200
-"""
-
 import serial
 
 class PiraniGauge:
+    """
+    Interface for the Pirani (low pressure) gauge.
+    https://uk.my.edwardsvacuum.com/en/GBP/Catalog/Measurement%2C-Leak-Detection-and-Control/Gauge-Indirect-Pressure-Measurement/APG-Series-Pirani-Gauge/nAPG200-Series-%28digital%29/p/D1G2010200
+    """
     def __init__(self):
         self.ser = ser = serial.Serial(
             port="/dev/ttyUSB0",

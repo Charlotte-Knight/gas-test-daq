@@ -30,7 +30,6 @@ def init_db() -> None:
 
 
 def get_session() -> Session:
-    """Yield a SQLModel session for use as a FastAPI dependency."""
     with Session(engine) as session:
         yield session
 

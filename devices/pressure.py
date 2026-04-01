@@ -1,11 +1,10 @@
-"""
-Interface for the high pressure (up to 16 bar) gauge.
-https://uk.rs-online.com/web/p/pressure-sensors/0309725
-"""
-
 import revpimodio2
 
 class PressureGauge:
+  """
+  Interface for the high pressure (up to 16 bar) gauge.
+  https://uk.rs-online.com/web/p/pressure-sensors/0309725
+  """
   def __init__(self):
     self.rpi = revpimodio2.RevPiModIO(autorefresh=True)
     

@@ -47,7 +47,7 @@ async def lifespan(app: FastAPI):
     logger.info("DAQ threads shut down")
 
 
-app = FastAPI(title="DAQ & Control", lifespan=lifespan)
+app = FastAPI(title="537 Gas Test DAQ & Control", lifespan=lifespan)
 
 # Convenience type alias for injected sessions
 DbSession = Annotated[Session, Depends(get_session)]
