@@ -1,0 +1,25 @@
+[Unit]
+Description=DAQ and control dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=mdk16
+Group=mdk16
+WorkingDirectory=/home/mdk16/gas-test-daq
+
+# Option B: FastAPI / Uvicorn
+ExecStart=/home/mdk16/gas-test-daq/env/bin/uvicorn main:app --port 8081 --timeout-graceful-shutdown 1
+
+Restart=always
+RestartSec=5
+
+# Environment variables (optional)
+Environment=PYTHONUNBUFFERED=1
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
