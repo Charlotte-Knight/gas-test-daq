@@ -53,9 +53,8 @@
     }
     .mode-btn:hover { border-color: #64748b; color: #e2e8f0; }
 
-    .mode-btn.active-AUTO   { background: #1d4ed8; border-color: #3b82f6; color: #fff; }
-    .mode-btn.active-MANUAL { background: #b45309; border-color: #f59e0b; color: #fff; }
-    .mode-btn.active-SAFE   { background: #15803d; border-color: #22c55e; color: #fff; }
+    .mode-btn.active-DATATAKING   { background: #1d4ed8; border-color: #3b82f6; color: #fff; }
+    .mode-btn.active-IDLE { background: #b45309; border-color: #f59e0b; color: #fff; }
 
     .mode-btn.active-ON   { background: #1d4ed8; border-color: #3b82f6; color: #fff; }
     .mode-btn.active-OFF   { background: #1d4ed8; border-color: #3b82f6; color: #fff; }
@@ -131,9 +130,8 @@
   <div class="card">
     <h2>Operating Mode</h2>
     <div class="mode-group">
-      <button class="mode-btn" id="btn-AUTO"   onclick="setMode('AUTO')">AUTO</button>
-      <button class="mode-btn" id="btn-MANUAL" onclick="setMode('MANUAL')">MANUAL</button>
-      <button class="mode-btn" id="btn-SAFE"   onclick="setMode('SAFE')">SAFE</button>
+      <button class="mode-btn" id="btn-DATATAKING"   onclick="setMode('DATATAKING')">DATATAKING</button>
+      <button class="mode-btn" id="btn-IDLE" onclick="setMode('IDLE')">IDLE</button>
     </div>
   </div>
 </div>
@@ -230,14 +228,16 @@
 
   function pushToChart(ts, pressure, pirani_pressure) {
     const label = new Date(ts).toLocaleTimeString();
-    labels.push(label);
-    datasets[0].data.push(pressure);
-    datasets[1].data.push(pirani_pressure);
-    if (labels.length > MAX_POINTS) {
-      labels.shift();
-      datasets.forEach(d => d.data.shift());
+    if (label !== labels[labels.length - 1]) {
+      labels.push(label);
+      datasets[0].data.push(pressure);
+      datasets[1].data.push(pirani_pressure);
+      if (labels.length > MAX_POINTS) {
+        labels.shift();
+        datasets.forEach(d => d.data.shift());
+      }
+      chart.update("none");
     }
-    chart.update("none");
   }
 
   // ── Mode buttons ─────────────────────────────────────────────────────────
@@ -247,7 +247,7 @@
   }
 
   function highlightMode(mode) {
-    ["AUTO", "MANUAL", "SAFE"].forEach(m => {
+    ["DATATAKING", "IDLE"].forEach(m => {
       const btn = document.getElementById(`btn-${m}`);
       btn.className = "mode-btn" + (m === mode ? ` active-${m}` : "");
     });

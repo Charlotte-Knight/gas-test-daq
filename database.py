@@ -20,7 +20,7 @@ def init_db() -> None:
         # Only insert default mode if the config table is empty
         existing = session.exec(select(Config).where(Config.key == "mode")).first()
         if not existing:
-            session.add(Config(key="mode", value=Mode.AUTO.value))
+            session.add(Config(key="mode", value=Mode.IDLE.value))
             session.commit()
             
         existing = session.exec(select(Config).where(Config.key == "pump")).first()

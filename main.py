@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 
 from database import get_mode, get_session, init_db, set_mode, get_pump, set_pump
 from daq import SamplerThread, DatabaseThread, buffer
-from models import Measurement, Mode, PumpState
+from models import Config, Measurement, Mode, PumpState
 
 import numpy as np
 
@@ -115,24 +115,24 @@ def get_latest(session: DbSession) -> Measurement:
 @app.get("/stream", summary="Live measurement stream via SSE")
 async def stream(session: DbSession) -> StreamingResponse:
     async def event_generator() -> AsyncGenerator[str, None]:
-        last_id: int | None = None
         while True:
             # Use a fresh session per poll to avoid stale reads
             with Session(session.bind) as s:
-                row = s.exec(
+                measurement = s.exec(
                     select(Measurement).order_by(Measurement.id.desc()).limit(1)
                 ).first()
 
-            if row and row.id != last_id:
-                last_id = row.id
+                mode = s.exec(select(Config).where(Config.key == "mode")).one()
+                pump = s.exec(select(Config).where(Config.key == "pump")).one()
+
+            if measurement:
                 payload = {
-                    "id": row.id,
-                    "timestamp": row.timestamp.isoformat(),
-                    "ch1": row.ch1,
-                    "pressure": row.pressure,
-                    "pirani_pressure": row.pirani_pressure,
-                    "mode": row.mode.value,
-                    "pump": row.pump.value,
+                    "timestamp": measurement.timestamp.isoformat(),
+                    "ch1": measurement.ch1,
+                    "pressure": measurement.pressure,
+                    "pirani_pressure": measurement.pirani_pressure,
+                    "mode": mode.value,
+                    "pump": pump.value,
                 }
                 yield f"data: {json.dumps(payload)}\n\n"
 

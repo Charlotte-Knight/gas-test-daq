@@ -7,7 +7,7 @@ import time
 from sqlmodel import Session
 
 from database import engine, get_mode, get_pump
-from models import Measurement, PumpState
+from models import Measurement, PumpState, Mode
 from devices import PiraniGauge, PressureGauge, VacuumPump
 
 from collections import deque
@@ -77,15 +77,16 @@ class DatabaseThread(DAQThread):
             else:
                 pump.stop()
 
-            measurement = Measurement(
-                ch1=round(ch1, 4),
-                pressure=pressure_gauge.get_pressure_from_voltage(ch1),
-                pirani_pressure=pirani_pressure,
-                mode=mode,
-                pump=pump_state
-            )
-            session.add(measurement)
-            session.commit()
+            if mode == Mode.DATATAKING:
+                measurement = Measurement(
+                    ch1=round(ch1, 4),
+                    pressure=pressure_gauge.get_pressure_from_voltage(ch1),
+                    pirani_pressure=pirani_pressure,
+                    mode=mode,
+                    pump=pump_state
+                )
+                session.add(measurement)
+                session.commit()
 
 class SamplerThread(DAQThread):
     def __init__(self, interval: float = 1.0) -> None:

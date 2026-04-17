@@ -6,9 +6,8 @@ from sqlmodel import Field, SQLModel
 
 
 class Mode(str, Enum):
-    AUTO = "AUTO"
-    MANUAL = "MANUAL"
-    SAFE = "SAFE"
+    DATATAKING = "DATATAKING"
+    IDLE = "IDLE"
     
 
 class PumpState(str, Enum):
