@@ -1,4 +1,6 @@
 import revpimodio2
+import numpy as np
+import time
 
 class PressureGauge:
   """
@@ -9,7 +11,8 @@ class PressureGauge:
     self.rpi = revpimodio2.RevPiModIO(autorefresh=True)
     
   def read_voltage(self) -> float:
-    ch1 = self.rpi.io.AnalogInput_1.value / 1000 # Convert mV to V
+    #ch1 = self.rpi.io.AnalogInput_1.value / 1000 # Convert mV to V
+    ch1 = np.sin(time.time()/600) * 10 + 0.5 # Simulate a pressure reading that oscillates between 0 and 
     return ch1
   
   def get_pressure_from_voltage(self, voltage: float) -> float:
@@ -20,4 +23,8 @@ class PressureGauge:
   
   def read_pressure(self) -> float:
     voltage = self.read_voltage()
-    return self.read_pressure_from_voltage(voltage)
+    return self.get_pressure_from_voltage(voltage)
+
+if __name__ == "__main__":
+    gauge = PressureGauge()
+    print(gauge.read_pressure())
