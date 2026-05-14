@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 pressure_gauge = PressureGauge()
 pump = VacuumPump()
 pirani = PiraniGauge()
-pressure_alert = GasPressureAlert()
+pressure_alert = GasPressureAlert(thr_low = 0.5, thr_high = 10)
 
 class DAQThread(threading.Thread):
     """Base class for DAQ threads that run at a fixed interval."""

@@ -1,27 +1,29 @@
 import time
 import os
-from venv import logger
 from datetime import datetime
+from dotenv import load_dotenv
 
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
+# Using environment variables for Slack token and channel
+load_dotenv()
 bot_token = os.getenv("SLACK_BOT_TOKEN")
 slack_channel = os.getenv("SLACK_CHANNEL")
 if not bot_token:
-    raise ValueError("SLACK_BOT_TOKEN not set. Please set SLACK_BOT_TOKEN environment variable")
+    raise ValueError("SLACK_BOT_TOKEN not set. Please set SLACK_BOT_TOKEN environment variable in .env file")
 if not slack_channel:
-    raise ValueError("SLACK_CHANNEL not set. Please set SLACK_CHANNEL environment variable")
+    raise ValueError("SLACK_CHANNEL not set. Please set SLACK_CHANNEL environment variable in .env file")
 
 client = WebClient(token=bot_token)
 
 class GasPressureAlert:
     
-    def __init__(self):
+    def __init__(self,thr_low,thr_high):
 
         self.name = "Pressure Alert"              
-        self.thr_low = 0.5          # the low threshold
-        self.thr_high = 10          # the high threshold
+        self.thr_low = thr_low          # the low threshold
+        self.thr_high = thr_high          # the high threshold
         self.triggered = False          # whether it has been triggered
         self.alert_time = None
         self.last_alert = 0
