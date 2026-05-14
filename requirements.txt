@@ -4,3 +4,5 @@ sqlmodel>=0.0.19
 revpimodio2
 numpy
 pyserial
+slack-sdk
+python-dotenv

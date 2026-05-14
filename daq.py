@@ -9,6 +9,7 @@ from sqlmodel import Session
 from database import engine, get_mode, get_pump
 from models import Measurement, PumpState, Mode
 from devices import PiraniGauge, PressureGauge, VacuumPump
+from slack_alert import GasPressureAlert
 
 from collections import deque
 
@@ -22,6 +23,7 @@ logger = logging.getLogger(__name__)
 pressure_gauge = PressureGauge()
 pump = VacuumPump()
 pirani = PiraniGauge()
+pressure_alert = GasPressureAlert(thr_low = 0.5, thr_high = 10)
 
 class DAQThread(threading.Thread):
     """Base class for DAQ threads that run at a fixed interval."""
@@ -70,6 +72,11 @@ class DatabaseThread(DAQThread):
             mode = get_mode(session)
             pump_state = get_pump(session)
             pirani_pressure = pirani.read_pressure()
+            pressure=pressure_gauge.get_pressure_from_voltage(ch1)
+
+            # Check if the pressure alert should be triggered
+            if pressure_alert.check(pressure):
+                pressure_alert.send_slack_message(pressure)
 
             # PLACEHOLDER: need to implement logic to check whether pump already on/off or not
             if pump_state == PumpState.ON:
@@ -80,7 +87,7 @@ class DatabaseThread(DAQThread):
             if mode == Mode.DATATAKING:
                 measurement = Measurement(
                     ch1=round(ch1, 4),
-                    pressure=pressure_gauge.get_pressure_from_voltage(ch1),
+                    pressure=pressure,
                     pirani_pressure=pirani_pressure,
                     mode=mode,
                     pump=pump_state
