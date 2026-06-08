@@ -41,10 +41,10 @@ class PiraniGauge:
         
     def set_gas_type(self, gas_type):
         if gas_type not in ["Air", "Ar", "He", "CO2", "Ne", "Kr", "Xe"]:
-            raise ValueError("Unsupported gas type: " + gas_type + "Expected one of: Air, Ar, He, CO2, Ne, Kr, Xe")
+            raise ValueError(f"Unsupported gas type: {gas_type}. Expected one of: Air, Ar, He, CO2, Ne, Kr, Xe")
         gas_code = self.GAS_TYPE_MAP.get(gas_type)
-        cmd_string = f"!S756 {gas_code}"
-        response = self.cmd(cmd_string)
+        response = self.cmd(f"!S756 {gas_code}")
+
         if response.startswith("*S756 00"):
             return
         else:
