@@ -1,6 +1,8 @@
+from datetime import datetime
+
 from sqlmodel import Session, SQLModel, create_engine, select
 
-from models import Config, Mode, PumpState
+from models import Config, Mode, PumpState, Run
 
 DATABASE_URL = "sqlite:///daq.db"
 
@@ -56,3 +58,19 @@ def set_pump(session: Session, pump: PumpState) -> None:
     config.value = pump.value
     session.add(config)
     session.commit()
+
+def new_run(session: Session) -> int:
+    last_run = session.exec(select(Run).order_by(Run.run_id.desc())).first()
+    next_run_id = (last_run.run_id if last_run else 0) + 1
+    new_run = Run(run_id=next_run_id, start_time=datetime.utcnow())
+    session.add(new_run)
+    session.commit()
+    session.refresh(new_run)
+    return new_run.run_id
+
+def end_run(session: Session, run_id: int):
+    run = session.exec(select(Run).where(Run.run_id == run_id)).first()
+    if run:
+        run.end_time = datetime.utcnow()
+        session.add(run)
+        session.commit()
