@@ -23,15 +23,14 @@ class Measurement(SQLModel, table=True):
     pirani_pressure: float
     mode: Mode
     pump: PumpState
-    run_id: Optional[int] = Field(default=None, foreign_key="run.id")
+    run_id: Optional[int] = Field(default=None, foreign_key="run.run_id")
     class Config:
         # Allows pandas-friendly CSV/parquet export via:
         #   pd.read_sql("SELECT * FROM measurement", engine)
         pass
 
 class Run(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    run_id: int = Field(index=True, unique=True)
+    run_id: int = Field(primary_key=True, default=None)
     start_time: datetime = Field(default_factory=datetime.utcnow)
     end_time: Optional[datetime] = None
 
