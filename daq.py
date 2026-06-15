@@ -6,7 +6,7 @@ import time
 
 from sqlmodel import Session
 
-from database import engine, get_mode, get_pump
+from database import engine, get_mode, get_pump, new_run, end_run
 from models import Measurement, PumpState, Mode
 from devices import PiraniGauge, PressureGauge, VacuumPump
 from slack_alert import GasPressureAlert
@@ -17,6 +17,7 @@ from collections import deque
 buffer = deque(maxlen=100)
 # to hold the latest ADC reading for the database thread to access
 latest_values = None 
+current_run_id = None
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +60,10 @@ class DAQThread(threading.Thread):
 class DatabaseThread(DAQThread):
     def __init__(self, interval: float = 1.0) -> None:
         super().__init__(name="DatabaseThread", interval=interval)
+        self.last_mode = None
     
     def _tick(self) -> None:
+        global current_run_id
         with Session(engine) as session:
             with lock:
                 ch1 = latest_values
@@ -78,19 +81,31 @@ class DatabaseThread(DAQThread):
             if pressure_alert.check(pressure):
                 pressure_alert.send_slack_message(pressure)
 
+            # Check for mode changes to start/end runs
+            if self.last_mode != mode:
+                if mode == Mode.DATATAKING:
+                    current_run_id = new_run(session)
+                    logger.info(f"New data-taking session started, run_id={current_run_id}")
+                elif self.last_mode == Mode.DATATAKING and mode != Mode.DATATAKING and current_run_id is not None:
+                    end_run(session, current_run_id)
+                    logger.info(f"Data-taking session ended, run_id={current_run_id}")
+                    current_run_id = None
+            self.last_mode = mode
+
             # PLACEHOLDER: need to implement logic to check whether pump already on/off or not
             if pump_state == PumpState.ON:
                 pump.start()
             else:
                 pump.stop()
 
-            if mode == Mode.DATATAKING:
+            if mode == Mode.DATATAKING and current_run_id is not None:
                 measurement = Measurement(
                     ch1=round(ch1, 4),
                     pressure=pressure,
                     pirani_pressure=pirani_pressure,
                     mode=mode,
-                    pump=pump_state
+                    pump=pump_state,
+                    run_id=current_run_id
                 )
                 session.add(measurement)
                 session.commit()

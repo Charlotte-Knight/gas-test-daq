@@ -30,7 +30,7 @@ class GasPressureAlert:
         self.alert_interval = 60
     
     def check(self, current_pressure):
-
+        should_alert = False
         # Check if the current pressure is outside the thresholds
         if current_pressure > self.thr_high or current_pressure < self.thr_low:
             current_time = time.time()
