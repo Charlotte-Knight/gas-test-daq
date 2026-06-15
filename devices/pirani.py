@@ -5,6 +5,15 @@ class PiraniGauge:
     Interface for the Pirani (low pressure) gauge.
     https://uk.my.edwardsvacuum.com/en/GBP/Catalog/Measurement%2C-Leak-Detection-and-Control/Gauge-Indirect-Pressure-Measurement/APG-Series-Pirani-Gauge/nAPG200-Series-%28digital%29/p/D1G2010200
     """
+    GAS_TYPE_MAP = {
+        "Air": 0,
+        "Ar": 1,
+        "He": 2,
+        "CO2": 3,
+        "Ne": 4,
+        "Kr": 5,
+        "Xe": 6
+    }
     def __init__(self):
         self.ser = ser = serial.Serial(
             port="/dev/ttyUSB0",
@@ -29,6 +38,18 @@ class PiraniGauge:
             return pressure_mbar / 1000.0
         else:
             raise ValueError("Unexpected response from pirani gauge: " + response)
+        
+    def set_gas_type(self, gas_type):
+        if gas_type not in ["Air", "Ar", "He", "CO2", "Ne", "Kr", "Xe"]:
+            raise ValueError(f"Unsupported gas type: {gas_type}. Expected one of: Air, Ar, He, CO2, Ne, Kr, Xe")
+        gas_code = self.GAS_TYPE_MAP.get(gas_type)
+        response = self.cmd(f"!S756 {gas_code}")
+
+        if response.startswith("*S756 00"):
+            return
+        else:
+            raise ValueError(f"Setting gas type failed, instrument returned: {response}")
+        
 
     def close(self):
         self.ser.close()
