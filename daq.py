@@ -13,13 +13,16 @@ from devices import PiraniGauge, PressureGauge, VacuumPump
 from collections import deque
 
 # In-memory buffer to hold the latest 100 pressure readings for noise evaluation
-buffer = deque(maxlen=100)
+ch1_buffer = deque(maxlen=100)
+ch3_buffer = deque(maxlen=100)  
 # to hold the latest ADC reading for the database thread to access
-latest_values = None 
+ch1_latest_values = None
+ch3_latest_values = None
 
 logger = logging.getLogger(__name__)
 
-pressure_gauge = PressureGauge()
+pipe_pressure_gauge = PressureGauge(channel=1)
+vessel_pressure_gauge = PressureGauge(channel=3)
 pump = VacuumPump()
 pirani = PiraniGauge()
 
@@ -61,12 +64,15 @@ class DatabaseThread(DAQThread):
     def _tick(self) -> None:
         with Session(engine) as session:
             with lock:
-                ch1 = latest_values
-            
+                ch1 = ch1_latest_values
+                ch3 = ch3_latest_values
             if ch1 is None:
-                logger.debug("No valid ADC readings yet, skipping tick")
+                logger.debug("No valid ch1 ADC readings yet, skipping tick")
                 return
-            
+            if ch3 is None:
+                logger.debug("No valid ch3 ADC readings yet, skipping tick")
+                return
+
             mode = get_mode(session)
             pump_state = get_pump(session)
             pirani_pressure = pirani.read_pressure()
@@ -80,7 +86,9 @@ class DatabaseThread(DAQThread):
             if mode == Mode.DATATAKING:
                 measurement = Measurement(
                     ch1=round(ch1, 4),
-                    pressure=pressure_gauge.get_pressure_from_voltage(ch1),
+                    ch3=round(ch3, 4),
+                    pipe_pressure=pipe_pressure_gauge.get_pressure_from_voltage(ch1),
+                    vessel_pressure=vessel_pressure_gauge.get_pressure_from_voltage(ch3),
                     pirani_pressure=pirani_pressure,
                     mode=mode,
                     pump=pump_state
@@ -93,8 +101,11 @@ class SamplerThread(DAQThread):
         super().__init__(name="SamplerThread", interval=interval)
     
     def _tick(self) -> None:
-        global latest_values
-        ch1 = pressure_gauge.read_voltage()
+        global ch1_latest_values, ch3_latest_values
+        ch1 = pipe_pressure_gauge.read_voltage()
+        ch3 = vessel_pressure_gauge.read_voltage()
         with lock:
-            latest_values = ch1
-            buffer.append(ch1)
+            ch1_latest_values = ch1
+            ch3_latest_values = ch3
+            ch1_buffer.append(ch1)
+            ch3_buffer.append(ch3)

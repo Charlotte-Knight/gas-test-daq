@@ -19,7 +19,9 @@ class Measurement(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     timestamp: datetime = Field(default_factory=datetime.utcnow, index=True)
     ch1: float
-    pressure: float
+    ch3: float
+    pipe_pressure: float
+    vessel_pressure: float
     pirani_pressure: float
     mode: Mode
     pump: PumpState
@@ -27,7 +29,6 @@ class Measurement(SQLModel, table=True):
         # Allows pandas-friendly CSV/parquet export via:
         #   pd.read_sql("SELECT * FROM measurement", engine)
         pass
-
 
 class Config(SQLModel, table=True):
     key: str = Field(primary_key=True)

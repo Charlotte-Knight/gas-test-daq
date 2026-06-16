@@ -4,3 +4,4 @@ sqlmodel>=0.0.19
 revpimodio2
 numpy
 pyserial
+psycopg2-binary
