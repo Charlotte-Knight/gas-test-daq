@@ -5,3 +5,5 @@ revpimodio2
 numpy
 pyserial
 psycopg2-binary
+slack-sdk
+python-dotenv

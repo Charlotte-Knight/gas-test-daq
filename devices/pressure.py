@@ -1,4 +1,6 @@
 import revpimodio2
+import numpy as np
+import time
 
 class PressureGauge:
   """
