@@ -2,15 +2,17 @@ from sqlmodel import Session, SQLModel, create_engine, select
 
 from models import Config, Mode, PumpState
 
-DATABASE_URL = "sqlite:///daq.db"
+#DATABASE_URL = "sqlite:///daq.db"
 
 # check_same_thread=False is required for SQLite when accessed from
 # multiple threads (DAQ thread + FastAPI request handlers).
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    echo=False,
-)
+#engine = create_engine(
+#    DATABASE_URL,
+#    connect_args={"check_same_thread": False},
+#    echo=False,
+#)
+
+engine = create_engine("postgresql://postgres:password@localhost/postgres")
 
 
 def init_db() -> None:
@@ -39,7 +41,7 @@ def get_mode(session: Session) -> Mode:
     return Mode(config.value)
 
 
-def set_mode(session: Session, mode: Mode) -> None:
+def set_mode(session: Session, mode: Mode) -> None:    
     config = session.exec(select(Config).where(Config.key == "mode")).one()
     config.value = mode.value
     session.add(config)

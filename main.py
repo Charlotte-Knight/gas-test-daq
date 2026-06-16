@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from sqlmodel import Session, select
 
 from database import get_mode, get_session, init_db, set_mode, get_pump, set_pump
-from daq import SamplerThread, DatabaseThread, buffer
+from daq import SamplerThread, DatabaseThread, ch1_buffer, ch3_buffer
 from models import Config, Measurement, Mode, PumpState
 
 import numpy as np
@@ -129,7 +129,7 @@ async def stream(session: DbSession) -> StreamingResponse:
                 payload = {
                     "timestamp": measurement.timestamp.isoformat(),
                     "ch1": measurement.ch1,
-                    "pressure": measurement.pressure,
+                    "pressure": measurement.pipe_pressure,
                     "pirani_pressure": measurement.pirani_pressure,
                     "mode": mode.value,
                     "pump": pump.value,
@@ -160,13 +160,14 @@ def dashboard() -> str:
 @app.get("/buffer")
 def get_buffer() -> dict[str, list[float]]:
     return {
-        "ch1": list(buffer),
+        "ch1": list(ch1_buffer),
+        "ch3": list(ch3_buffer)
         }
     
 @app.get("/buffer/stats")
 def get_buffer_stats() -> dict:
     result = {}
-    for i, (ch, buf) in enumerate(zip(["ch1"], [buffer])):
+    for i, (ch, buf) in enumerate(zip(["ch1"], [ch1_buffer])):
         samples = list(buf)
         if len(samples) < 2:
             result[ch] = None

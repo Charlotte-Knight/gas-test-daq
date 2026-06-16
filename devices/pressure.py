@@ -7,12 +7,12 @@ class PressureGauge:
   Interface for the high pressure (up to 16 bar) gauge.
   https://uk.rs-online.com/web/p/pressure-sensors/0309725
   """
-  def __init__(self):
+  def __init__(self, channel: int):
+    self.channel = channel
     self.rpi = revpimodio2.RevPiModIO(autorefresh=True)
     
   def read_voltage(self) -> float:
-    ch1 = self.rpi.io.AnalogInput_1.value / 1000 # Convert mV to V
-    #ch1 = np.sin(time.time()/600) * 10 + 0.5 # Simulate a pressure reading that oscillates between 0 and 
+    ch1 = getattr(self.rpi.io, f"AnalogInput_{self.channel}").value / 1000 # Convert mV to V
     return ch1
   
   def get_pressure_from_voltage(self, voltage: float) -> float:
@@ -26,5 +26,9 @@ class PressureGauge:
     return self.get_pressure_from_voltage(voltage)
 
 if __name__ == "__main__":
-    gauge = PressureGauge()
-    print(gauge.read_pressure())
+    ch1 = PressureGauge(channel=1)
+    ch2 = PressureGauge(channel=2)
+    ch3 = PressureGauge(channel=3)
+    print(ch1.read_pressure())
+    print(ch2.read_pressure())
+    print(ch3.read_pressure())
