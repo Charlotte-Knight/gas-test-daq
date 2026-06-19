@@ -49,12 +49,35 @@ class PiraniGauge:
             return
         else:
             raise ValueError(f"Setting gas type failed, instrument returned: {response}")
+    
+    def do_atmospheric_adjustment(self):
+        """
+        This function sends the serial command to carry out atmospheric adjustment (calibration).
         
+        Instructions from manual:
+        1. Supply power to the gauge, make sure that the LED indicator is green and allow the 1.
+        gauge to warm up at atmospheric pressure in nitrogen or air for at least 10 minutes.
+        2. Initiate the atmosphere adjustment by sending the calibrate command to the
+        gauge.
+        3. The LED indicator will flash cyan to indicate the operation is being performed.
+        4. After 3 seconds, the LED indicator stops flashing and the atmosphere adjustment
+        parameters are stored in the gauge.
+        5. The status of the gauge during this adjustment is displayed in the gauge status that 5.
+        is returned when the gauge pressure is read. The calibration in process bit will be
+        cleared when the adjustment is complete.
+        6. The output of the gauge will automatically be adjusted to read atmosphere.
+        """
+        response = self.cmd("!S761 1;1")
+        
+        if response == "*S761 1;00":
+            return
+        else:
+            raise ValueError(f"Atmospheric adjustment failed, instrument returned: {response}")
 
     def close(self):
         self.ser.close()
         
 if __name__ == "__main__":
-    gauge = PiraniGauge("/dev/ttyUSB0")
+    gauge = PiraniGauge()
     print("Current pressure:", gauge.read_pressure())
     gauge.close()
