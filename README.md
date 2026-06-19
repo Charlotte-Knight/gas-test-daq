@@ -1,5 +1,7 @@
 # DAQ & Control System
 
+![logo](docs/GATOR-transparent-128.png)
+
 ## Quick Start
 
 Setup a virtual python env
